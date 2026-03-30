@@ -1,45 +1,91 @@
 from PyQt5.QtWidgets import (
-    QWidget, QDesktopWidget, QPushButton, QMessageBox, QVBoxLayout, QFileDialog, QLabel, QHBoxLayout
+    QWidget, QDesktopWidget, QPushButton, QMessageBox, QFileDialog, QLabel, QHBoxLayout, QVBoxLayout, QGroupBox,
+    QLineEdit, QSizePolicy
 )
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.main_layout = QVBoxLayout()
-        self.model_layout = QHBoxLayout()
-        self.file_layout = QHBoxLayout()
-
-        self.model_name = QLabel("Выберите модель", self)
-        self.model_button = QPushButton("Выбрать...", self)
-        self.file_name = QLabel("Выберите файл", self)
-        self.file_button = QPushButton("Выбрать...", self)
-        self.start_btn = QPushButton("Start", self)
         self.init_ui()
 
     def init_ui(self):
-        self.resize(800, 600)
+        self.resize(800, 300)
         self.center()
+        self.setWindowTitle("MS")
 
-        self.model_button.clicked.connect(lambda: self.open_name_file_dialog(self.model_name))
-        self.file_button.clicked.connect(lambda: self.open_name_file_dialog(self.file_name))
-        self.start_btn.clicked.connect(self.start_process)
-        self.setWindowTitle("ModelsStatics")
+        self.main_layout = QVBoxLayout()
+        self.main_layout.setContentsMargins(20, 20, 20, 20)
+        self.main_layout.setSpacing(20)
 
-        self.model_layout.addWidget(self.model_button)
-        self.model_layout.addWidget(self.model_name)
-        self.file_layout.addWidget(self.file_button)
-        self.file_layout.addWidget(self.file_name)
-        self.main_layout.addLayout(self.model_layout)
-        self.main_layout.addLayout(self.file_layout)
-        self.main_layout.addWidget(self.start_btn)
+        self.files_group = QGroupBox("Input files")
+        self.files_layout = QVBoxLayout()
+        self.files_layout.setSpacing(15)
+
+        self.model_row = QHBoxLayout()
+        self.model_name = QLabel("Model:")
+        self.model_name.setFixedWidth(60)
+        self.model_path = QLineEdit()
+        self.model_path.setPlaceholderText("Choose model file...")
+        self.model_path.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.model_btn = QPushButton("...")
+        self.model_btn.setFixedWidth(40)
+        self.model_row.addWidget(self.model_name)
+        self.model_row.addWidget(self.model_path)
+        self.model_row.addWidget(self.model_btn)
+
+        self.file_row = QHBoxLayout()
+        self.file_name = QLabel("File:")
+        self.file_name.setFixedWidth(60)
+        self.file_path = QLineEdit()
+        self.file_path.setPlaceholderText("Choose file...")
+        self.file_path.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.file_btn = QPushButton("...")
+        self.file_btn.setFixedWidth(40)
+        self.file_row.addWidget(self.file_name)
+        self.file_row.addWidget(self.file_path)
+        self.file_row.addWidget(self.file_btn)
+
+        self.files_layout.addLayout(self.model_row)
+        self.files_layout.addLayout(self.file_row)
+        self.files_group.setLayout(self.files_layout)
+
+        self.bottom_layout = QHBoxLayout()
+        self.bottom_layout.addStretch()
+
+        self.start_btn = QPushButton("Start")
+        self.start_btn.setFixedSize(100, 40)
+
+        self.bottom_layout.addWidget(self.start_btn)
+
+        self.main_layout.addWidget(self.files_group)
+        self.main_layout.addStretch()
+        self.main_layout.addLayout(self.bottom_layout)
 
         self.setLayout(self.main_layout)
 
-    def open_name_file_dialog(self, target_label):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Choose file")
+        self.start_btn.clicked.connect(self.start_process)
+
+        self.model_btn.clicked.connect(
+            lambda: self.open_name_file_dialog(
+                self.model_path,
+                title="Choose model file",
+                filter="Model files (*.tflite *.oonx *.pt);; All files (*)"
+            )
+        )
+
+        self.file_btn.clicked.connect(
+            lambda: self.open_name_file_dialog(
+                self.file_path,
+                title="Choose file",
+                filter="Media files (*.mp4 *.png *.jpg);; All files (*)"
+            )
+        )
+
+    def open_name_file_dialog(self, target_widget, title="Choose file", filter="All files (*)"):
+        file_path, _ = QFileDialog.getOpenFileName(self, title, "", filter)
 
         if file_path:
-            target_label.setText(file_path)
+            target_widget.setText(file_path)
 
     def center(self):
         qr = self.geometry()
@@ -48,4 +94,11 @@ class MainWindow(QWidget):
         self.move(qr.topLeft())
 
     def start_process(self):
-        QMessageBox.information(self, "Info", "Start process")
+        model = self.model_path.text()
+        file = self.file_path.text()
+
+        if not model or not file:
+            QMessageBox.critical(self, "Error", "Please choose model and file")
+            return
+        
+        QMessageBox.information(self, "Info", "Start process \n\nModel: {model}\nFile: {file}")

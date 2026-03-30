@@ -1,8 +1,8 @@
 import sys
 
-from core.detectors.mediapipe_detector import MediapipeDetector
-from core.pipelines.Video_pipeline import VideoPipeline
-from core.visualize.drawer import Drawer
+# from core.detectors.mediapipe_detector import MediapipeDetector
+# from core.pipelines.Video_pipeline import VideoPipeline
+# from core.visualize.drawer import Drawer
 from UI.UI_main_window import MainWindow
 from PyQt5.QtWidgets import QApplication, QWidget
 
