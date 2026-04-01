@@ -1,7 +1,33 @@
+from core.detectors.mediapipe_detector import MediapipeDetector
+from core.pipelines.Video_pipeline import VideoPipeline
+from core.visualize.drawer import Drawer
+
 from PyQt5.QtWidgets import (
     QWidget, QDesktopWidget, QPushButton, QMessageBox, QFileDialog, QLabel, QHBoxLayout, QVBoxLayout, QGroupBox,
     QLineEdit, QSizePolicy
 )
+from PyQt5.QtCore import QThread, pyqtSignal
+
+class VideoProcessingThread(QThread):
+    finished = pyqtSignal()
+    error_signal = pyqtSignal(str)
+
+    def __init__(self, model_path, file_path):
+        super().__init__()
+        self.model_path = model_path
+        self.file_path = file_path
+
+    def run(self):
+        try:
+            detector = MediapipeDetector(self.model_path)
+            drawer = Drawer()
+            pipeline = VideoPipeline(self.file_path, detector, drawer, output_path="result.mp4")
+            pipeline.process()
+
+            self.finished.emit()
+
+        except Exception as e:
+            self.error_signal.emit(str(e))
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -53,7 +79,7 @@ class MainWindow(QWidget):
         self.bottom_layout.addStretch()
 
         self.start_btn = QPushButton("Start")
-        self.start_btn.setFixedSize(100, 40)
+        self.start_btn.setFixedSize(100, 30)
 
         self.bottom_layout.addWidget(self.start_btn)
 
@@ -100,5 +126,21 @@ class MainWindow(QWidget):
         if not model or not file:
             QMessageBox.critical(self, "Error", "Please choose model and file")
             return
-        
-        QMessageBox.information(self, "Info", "Start process \n\nModel: {model}\nFile: {file}")
+
+        self.start_btn.setEnabled(False)
+        self.start_btn.setText("Processing...")
+
+        self.thread = VideoProcessingThread(model, file)
+        self.thread.finished.connect(self.process_finished)
+        self.thread.error_signal.connect(self.process_error)
+        self.thread.start()
+
+    def process_finished(self):
+        self.start_btn.setEnabled(True)
+        self.start_btn.setText("Start")
+        QMessageBox.information(self, "Success", "Processing finished")
+
+    def process_error(self, error_message):
+        self.start_btn.setEnabled(True)
+        self.start_btn.setText("Start")
+        QMessageBox.critical(self, "Error", error_message)
